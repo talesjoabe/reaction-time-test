@@ -15,6 +15,7 @@ var level = 3;
 //Variaveis para contagem do tempo
 let segundos = 0;
 let minutos = 0;
+let time_off = 0;
 
 //Variaveis booleanas para estagios do jogo
 let count_menu = 0; // 1. Start 2. Instruçoes 3.Fim
@@ -22,7 +23,14 @@ let button_flag = false; // False = Não criou os botoes // True = criou
 var start = false;
 var win = false;
 var flag_game = true;
-let time_aux=0;
+let time_aux = 0;
+
+let initial_time = 0;
+let last_time = 0;
+let total_time = 0;
+let erros = 0;
+let acertos = 0;
+
 
 function setup() {
   count = 0;
@@ -52,27 +60,29 @@ function draw() {
     counting_time();
     fill(255);
     textSize(28);
-    text('Duração do jogo: ' + segundos, 50, 50);
-    
-    if(flag_game){
-      time_aux=0;
+    text('Duração do jogo: ' + segundos + 's', 50, 50);
+    text('Score: ' + (acertos-erros), 1000, 50);
+
+    if (flag_game) {
+      if (frameCount % 60 == 0) time_off++;
+      if (time_off>=int(random(2,4))) {
+        flag_game=0;
+        time_off = 0;
+      }
+      time_aux = 0;
       x_center = random(300, 850);
       y_center = random(150, 700);
       x_center < 400 || x_center > 800 ? x_size = random(10, 50) : x_size = random(10, 300);
       y_center < 400 || y_center > 800 ? y_size = random(10, 50) : y_size = random(10, 300);
       time_random = int(random(2, 6));
-      flag_game = false;
       cor = random(colors);
-    } else{
-        fill(cor);
-        text('Duração da bola: ' + time_random, 50, 80);
-        ellipse(x_center, y_center, x_size, y_size);
-        if(time_aux<=time_random){
-          if(frameCount % 60 == 0) time_aux++;
-        } else{ 
-          flag_game = true;
-        }
-      if(check()) flag_game = true;
+      initial_time = segundos;
+    } else {
+      text('Duração da bola: ' + time_random + 's', 50, 80);
+
+      fill(cor);
+      ellipse(x_center, y_center, x_size, y_size);
+      check();
     }
   } else if (count_menu == 2) {
     fill('#000000');
@@ -84,10 +94,21 @@ function draw() {
       buttonStart.mousePressed(menu_start);
       button_flag = false;
     }
-  } else if (count_menu == 4){
+  } else if (count_menu == 4) {
     fill(255);
     textSize(28);
-    text('FIM!!!!', 470, 520);
+    text('Quantidade de acertos: ' + acertos, 300, 420);
+    text('Quantidade de erros: ' + erros, 300, 450);
+    text('Pontuação total: ' + (acertos-erros), 300, 480);
+    media= total_time/acertos;
+    text('Seu tempo médio de reação foi (acertos): ' + (media.toFixed(2)) +'s', 300, 510);
+    buttonStart = createButton('JOGAR NOVAMENTE');
+    buttonStart.position(300, 530);
+    buttonStart.mousePressed(menu_start);
+    
+     buttonInstruction = createButton('INSTRUÇOES');
+     buttonInstruction.position(450, 530);
+     buttonInstruction.mousePressed(menu_instruction);
   }
 }
 
@@ -113,26 +134,40 @@ function counting_time() {
     if (segundos == 60) {
       segundos = 0;
       count_menu = 4;
-    }    
+    }
   }
 }
 
-function check(){
-	
-	if(keyIsDown(LEFT_ARROW) && cor == Yellow){
-	    flag_game = true;
-	}
-	
-	if (keyIsDown(RIGHT_ARROW) && cor == Blue){
-		flag_game = true;
-	}
-	
-	if (keyIsDown(UP_ARROW) && cor== Red) {
-		flag_game = true;	
-	} 
-	
-	if (keyIsDown(DOWN_ARROW) && cor == Green) {
-		flag_game = true;			
-	}
+function check() {
 
- }
+  // acertos rules
+  var yellow_rule = keyIsDown(LEFT_ARROW) && cor == Yellow;
+  var red_rule = keyIsDown(UP_ARROW) && cor == Red;
+  var green_rule = keyIsDown(DOWN_ARROW) && cor == Green;
+  var blue_rule = keyIsDown(RIGHT_ARROW) && cor == Blue;
+
+  var acertos_rule = yellow_rule || green_rule || red_rule || blue_rule;
+
+
+  // erros rules
+  var wrong_yellow_rule = (keyIsDown(UP_ARROW) || keyIsDown(DOWN_ARROW) || keyIsDown(RIGHT_ARROW)) && cor == Yellow;
+  var wrong_red_rule = (keyIsDown(DOWN_ARROW) || keyIsDown(RIGHT_ARROW) || keyIsDown(LEFT_ARROW)) && cor == Red;
+  var wrong_green_rule = (keyIsDown(UP_ARROW) || keyIsDown(LEFT_ARROW) || keyIsDown(RIGHT_ARROW)) && cor == Green;
+  var wrong_blue_rule = (keyIsDown(DOWN_ARROW) || keyIsDown(UP_ARROW) || keyIsDown(DOWN_ARROW)) && cor == Blue;
+
+  var wrong_rule = wrong_yellow_rule || wrong_red_rule || wrong_green_rule || wrong_blue_rule;
+
+
+  if (flag_game == false && time_aux > time_random || wrong_rule || acertos_rule) {
+    flag_game = true;
+    if(acertos_rule){
+      acertos++;
+      last_time= segundos;
+      total_time = total_time+last_time-initial_time;
+    }else erros++;
+
+  } else {
+    if (frameCount % 60 == 0) time_aux++;
+  }
+
+}
